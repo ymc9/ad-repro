@@ -4,28 +4,23 @@ import { enhance } from '@zenstackhq/runtime';
 const prisma = new PrismaClient({ log: ['info'] });
 
 async function main() {
-    await prisma.company.deleteMany();
-    await prisma.user.deleteMany();
     await prisma.ad.deleteMany();
 
-    const user = await prisma.user.create({
-        data: {
-            isAdmin: false,
-            company: {
-                create: {
+    const db = enhance(
+        prisma,
+        {
+            user: {
+                id: 'user1',
+                company: {
+                    id: 'company1',
                     name: 'Company 1',
                     companyType: 'Buyer',
                     buyerType: 'RESTAURANT',
                 },
             },
         },
-        include: { company: true },
-    });
-
-    console.log('Created user:', user);
-
-    // the cast `user as any` is needed likely due to a typing bug, I'll investigate it
-    const db = enhance(prisma, { user: user as any }, { logPrismaQuery: true });
+        { logPrismaQuery: true }
+    );
     const ad = await db.ad.create({
         data: {
             buyerTypes: ['RESTAURANT'],

@@ -1,0 +1,55 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum BuyerType {
+  STORE
+  RESTAURANT
+  WHOLESALER
+}
+
+abstract model Id {
+  id String @id @default(cuid())
+}
+
+abstract model Base extends Id {
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Ad extends Base {
+  buyerTypes BuyerType[]
+  listPrice  Float
+
+  @@allow('all', auth().company.companyType == 'Buyer' && auth().company.buyerType in buyerTypes)
+  @@allow('all', auth().isAdmin)
+}
+
+model Company extends Base {
+  name        String    @unique
+  users       User[]
+
+  companyType String
+  buyerType   BuyerType
+  @@delegate(companyType)
+
+  @@allow('read, update', auth().companyId == id)
+  @@allow('all', auth().isAdmin)
+}
+
+
+model User extends Base {
+  isAdmin   Boolean  @default(false)
+  company   Company? @relation(fields: [companyId], references: [id])
+  companyId String?
+
+  @@allow('read', auth().id == id)
+  @@allow('read', auth().companyId == companyId)
+  @@allow('all', auth().isAdmin)
+}
+
